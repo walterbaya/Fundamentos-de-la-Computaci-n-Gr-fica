@@ -1,6 +1,3 @@
-// La imagen que tienen que modificar viene en el parámetro image y contiene inicialmente los datos originales
-// es objeto del tipo ImageData ( más info acá https://mzl.la/3rETTC6  )
-// Factor indica la cantidad de intensidades permitidas (sin contar el 0)
 class pixel{
   constructor(r,g,b){
       this.r = r;
@@ -45,81 +42,92 @@ function factor(n){
 }
 
 
-function applyError(pos, img, qeR, qeG, qeB,){
-    let width = img.width;
-    let height = img.height;
-
-    let p03 = pos + 4;
-    let p04 = p03 + 4;
-
-    let p12 = pos + width;
-    let p13 = p12 +4;
-    let p14 = p13 +4;
-    let p11 = p12 -4;
-    let p10 = p11 -4;
-
-    let p22 = p12 + width;
-    let p23 = p22 +4;
-    let p24 = p23 +4;
-    let p21 = p22 -4;
-    let p20 = p21 -4;
-
-
-    //chequear casos borde
-
-    // si la pos es el ultimo
-    if(pos == width*height*4 - 4 ){
-      return;
-    }
-    // si estamos en la primer columna
-    else if(pos % width == 0){
-      quantPixel(p03, img, qeR, qeG, qeB, 7/48);
-      quantPixel(p04, img, qeR, qeG, qeB, 5/48);
-      quantPixel(p12, img, qeR, qeG, qeB, 7/48);
-      quantPixel(p13, img, qeR, qeG, qeB, 5/48);
-      quantPixel(p14, img, qeR, qeG, qeB, 3/48);
-      quantPixel(p22, img, qeR, qeG, qeB, 5/48);
-      quantPixel(p23, img, qeR, qeG, qeB, 3/48);
-      quantPixel(p24, img, qeR, qeG, qeB, 1/48);
-      return;
-    }
-    // si estamos en la ultima columna
-    else if(pos % width == width - 1){
-      quantPixel(bottom, img, qeR, qeG, qeB, 5/16);
-      quantPixel(bottomLeft, img, qeR, qeG, qeB, 3/16);
-      return;
-    }
-    //ultima fila
-    else if(pos > width*(height-1)*4 && pos < width*(height)*4){
-      quantPixel(right, img, qeR, qeG, qeB, 7/16);
-      return;
-    }
-
-
-    quantPixel(right, img, qeR, qeG, qeB, 7/16);
-    quantPixel(bottom, img, qeR, qeG, qeB, 5/16);
-    quantPixel(bottomRight, img, qeR, qeG, qeB, 1/16);
-    quantPixel(bottomLeft, img, qeR, qeG, qeB, 3/16);
+//Toma la posicion y error de cada color y aplica el error
+//y*width*4 + x*4 esto serìa la posicion que ocupa 
+//en el arreglo cada canal rojo.
+//y*width*4 + x*4 + 1 esto serìa la posicion que ocupa 
+//en el arreglo cada canal verde.
+//y*width*4 + x*4 +2 esto serìa la posicion que ocupa 
+//en el arreglo cada canal azul.
+function quantPixel(x,y, img, qeR, qeG, qeB, mult){
+  let width = img.width; 
+  img.data[y*width*4 + x*4] += qeR*mult;
+  img.data[y*width*4 + x*4 + 1] += qeG*mult;
+  img.data[y*width*4 + x*4 + 2] += qeB*mult;  
 }
 
-// Toma la posicion y error de cada color y aplica el error
-function quantPixel(pos, img, qeR, qeG, qeB, mult){
-  img.data[pos] += qeR*mult;
-  img.data[pos + 1] += qeG*mult;
-  img.data[pos + 2] += qeB*mult;  
+
+function bordeIzquierdo(posX){
+  if(posX == 1){
+    return -1;
+  }
+  else if(posX == 0){
+    return 0;
+  }
+  else{
+    return -2;
+  }
+}
+
+function bordeDerecho(posX, width){
+  if(posX == width - 1){
+    return 0;
+  }
+  else if(posX ==  width - 2){
+    return 1;
+  }
+  else{
+    return 2;
+  }
+}
+
+function bordeInferior(posY, height){
+  if(posY == height - 1){
+    return 0;
+  }
+  else if(posY == height - 2){
+    return 1;
+  }
+  else{
+    return 2;
+  }
+}
+
+// -2<=bordeIzquierdo<=0
+// 0<=bordeDerecho<=2
+// 0<=bordeInferior<=2
+//Aplica dada la posicion x,y de un pixel  
+//la matriz de Jarvis a los pixeles vecinos
+function productoMatriz(x,y, qeR, qeG, qeB, img, matriz){
+  let width = img.width;
+  let height = img.height;
+  for (var i = 0; i <= bordeInferior(y, height); i++){
+      for (var j = bordeIzquierdo(x); j <= bordeDerecho(x, width); j++){
+        if(i==0 && (j == -2 || j == -1 || j == 0)){
+          
+        } 
+        else{
+          quantPixel(x + j, y + i, img, qeR, qeG, qeB, matriz[i][j+2]);
+        }       
+      }
+  }
 }
 
 
 function dither(image, fac) {
-    let width = image.width;
-    let height = image.height;
-    for(var i = 0; i < image.width*image.height*4 - 3 ; i+=4){
+   let width = image.width;
+   let height = image.height;
+   let x = 0;
+   let y = 0;
+   let matriz = [
+                 [1,1,1,7/48,5/48],
+                 [3/48,5/48,7/48,5/48,3/48],
+                 [1/48,3/48,5/48,3/48,1/48]
+                ];
+
+    for(var i = 0; i < width*height*4 - 3 ; i+=4){
       let oldpixel = new pixel(image.data[i],image.data[i+1],image.data[i+2]);
       let newpixel = find_closest_pixel(oldpixel, fac);
-
-      let x = i/4;
-      console.log(x); 
-      //let y = ;
       //pixel[x][y] = newPixel
       image.data[i] = newpixel.r;
       image.data[i+1] = newpixel.g;
@@ -129,11 +137,15 @@ function dither(image, fac) {
       let quant_error_g = oldpixel.g - newpixel.g;
       let quant_error_b = oldpixel.b - newpixel.b;
       
-      applyError(i, image, quant_error_r, quant_error_g, quant_error_b);
-    }
-    
-}
+      //Guardamos la posicion en x que ocupa dicho pixel
+      x = (i % (width*4))/4;
 
+      //Guardamos la posicion en y que ocupa dicho pixel
+      y = Math.floor(i / (width*4));
+
+      productoMatriz(x, y, quant_error_r, quant_error_g, quant_error_b,image,matriz);
+    }
+  }
 
 // Imágenes a restar (imageA y imageB) y el retorno en result
 function substraction(imageA, imageB, result) {
@@ -154,3 +166,4 @@ function substraction(imageA, imageB, result) {
     }
 
 }
+
