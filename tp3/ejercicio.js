@@ -39,10 +39,11 @@ class CurveDrawer {
 	}
 
 	updatePoints(pt) {
+		gl.useProgram(this.prog);
 		for (var i = 0; i < 4; ++i) {
 			var x = pt[i].getAttribute("cx");
 			var y = pt[i].getAttribute("cy");
-			gl.uniform2fv(this['p' + i],[x,y]);
+			gl.uniform2f(this['p' + i], x, y);
 		}
 	}
 
@@ -59,7 +60,7 @@ class CurveDrawer {
 }
 
 // Vertex Shader
-//[Completar] El vertex shader se ejecuta una vez por cada punto en mi curva (parámetro step). No confundir punto con punto de control.
+//El vertex shader se ejecuta una vez por cada punto en mi curva (parámetro step). No confundir punto con punto de control.
 // Deberán completar con la definición de una Bezier Cúbica para un punto t. Algunas consideraciones generales respecto a GLSL: si
 // declarás las variables pero no las usás, no se les asigna espacio. Siempre poner ; al finalizar las sentencias. Las constantes
 // en punto flotante necesitan ser expresadas como X.Y, incluso si son enteros: ejemplo, para 4 escribimos 4.0
